@@ -5,49 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>예약 관리 최종버전</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 10px;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 1000px;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  text-align: center;
-  padding: 6px;
-  white-space: nowrap;
-}
-
-.editable {
-  background: #fff9c4;
-  min-height: 24px;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.mgr {
-  background: #e0e0e0;
-  font-weight: bold;
-  pointer-events: none; /* 입력 불가 */
-}
-
-.highlight {
-  background: #ffe5e5 !important;
-}
-
-.time {
-  width: 50px;
-}
+body { font-family: Arial, sans-serif; padding: 10px; }
+.table-wrapper { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 1000px; }
+th, td { border: 1px solid #ccc; text-align: center; padding: 6px; white-space: nowrap; }
+.editable { background: #fff9c4; min-height: 24px; width: 100%; box-sizing: border-box; outline: none; }
+.highlight { background: #ffe5e5 !important; }
+.time { width: 50px; }
 </style>
 </head>
 <body>
@@ -70,7 +34,7 @@ const tbody = document.getElementById("tbody");
 // 유니크 key
 function key(date,id){ return date+"_"+id; }
 
-// 날짜 선택
+// 오늘 날짜
 const datePicker = document.getElementById("datePicker");
 const today = new Date().toISOString().split('T')[0];
 datePicker.value = today;
@@ -78,6 +42,7 @@ datePicker.value = today;
 // 테이블 생성
 function generateTable(date){
   tbody.innerHTML="";
+
   // 방 번호 헤더
   let headerRow="<tr><td>방 번호</td>";
   rooms.forEach(r=>{ headerRow+="<td colspan='3'>"+r+"</td>"; });
@@ -90,17 +55,19 @@ function generateTable(date){
     rooms.forEach(r=>{
       for(let c=1;c<=3;c++){
         let textId = key(date,"M"+m+"_"+r+"_c"+c);
-        row+=`<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}"></div></td>`;
+        row += `<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}" data-type="M"></div></td>`;
       }
     });
     row+="</tr>";
     tbody.innerHTML+=row;
   }
 
-  // M/G/R 읽기 전용
+  // M/G/R 칸 생성 (입력 가능)
   let mgrRow="<tr><td>M/G/R</td>";
   rooms.forEach(r=>{
-    mgrRow+="<td class='mgr'>M</td><td class='mgr'>G</td><td class='mgr'>R</td>";
+    mgrRow+="<td><div contenteditable='true' class='editable' data-type='MGR' data-col='1' id='"+key(date,"M_"+r)+"'></div></td>";
+    mgrRow+="<td><div contenteditable='true' class='editable' data-type='G' data-col='2' id='"+key(date,"G_"+r)+"'></div></td>";
+    mgrRow+="<td><div contenteditable='true' class='editable' data-type='MGR' data-col='3' id='"+key(date,"R_"+r)+"'></div></td>";
   });
   mgrRow+="</tr>";
   tbody.innerHTML+=mgrRow;
@@ -111,7 +78,7 @@ function generateTable(date){
     rooms.forEach(r=>{
       for(let c=1;c<=3;c++){
         let textId = key(date,"T"+t+"_"+r+"_c"+c);
-        row+=`<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}"></div></td>`;
+        row += `<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}"></div></td>`;
       }
     });
     row+="</tr>";
@@ -134,17 +101,25 @@ function generateTable(date){
 
 // 이벤트
 function attachEvents(date){
-  // Enter 금지 및 입력 제한
   document.querySelectorAll(".editable").forEach(cell=>{
+    // Enter 금지
     cell.addEventListener("keydown", e=>{ if(e.key==="Enter") e.preventDefault(); });
 
+    // 입력 제한
     cell.addEventListener("input", e=>{
+      const type = cell.dataset.type;
       const col = cell.dataset.col;
-      if(!col) return;
       let val = cell.innerText.trim();
-      if(col=="1") val = val.replace(/[^가-힣]/g,"").slice(0,2);
-      else if(col=="2") val = val.replace(/[^0-9]/g,"").slice(0,4);
-      else if(col=="3") val = val.replace(/[^가-힣]/g,"").slice(0,2);
+
+      if(type=="M" || type=="MGR"){ // M/R 또는 메모 M1~M3
+        if(col=="1" || col=="3") val = val.replace(/[^가-힣]/g,"").slice(0,2);
+        else if(col=="2") val = val.replace(/[^0-9]/g,"").slice(0,4);
+      }
+      if(type=="G"){ // G 칸 입력 시 뒤집어서 표시
+        val = val.replace(/[^0-9]/g,"").slice(0,4);
+        val = val.split("").reverse().join("");
+      }
+
       cell.innerText = val;
 
       // 칸2 입력 시 칸1 강조
@@ -158,7 +133,7 @@ function attachEvents(date){
     });
   });
 
-  // TW/TB 칸B 체크 시 칸A 색 강조
+  // TW/TB 체크박스
   document.addEventListener("change", e=>{
     if(e.target.type==="checkbox"){
       const aId = e.target.id.replace("_B","_A");
@@ -199,7 +174,7 @@ function loadData(date){
   });
 }
 
-// 초기 생성
+// 초기
 generateTable(today);
 attachEvents(today);
 loadData(today);
@@ -219,5 +194,6 @@ document.getElementById("saveBtn").addEventListener("click", ()=>{
 </script>
 </body>
 </html>
+
 
 
