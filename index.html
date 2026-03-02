@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>예약 관리 최종버전</title>
+<title>예약 관리 최종판</title>
 <style>
 body { font-family: Arial, sans-serif; padding: 10px; }
 .table-wrapper { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; min-width: 1000px; }
 th, td { border: 1px solid #ccc; text-align: center; padding: 6px; white-space: nowrap; }
-.editable { background: #fff9c4; min-height: 24px; width: 100%; box-sizing: border-box; outline: none; }
+.editable { background: #fff9c4; min-height: 24px; box-sizing: border-box; outline: none; display: inline-block; }
 .highlight { background: #ffe5e5 !important; }
 .time { width: 50px; }
+/* 글자수 기준 칸 폭 */
+.Mcell { width: 2.2em; }  /* 한글 2글자 + 약간 여유 */
+.Rcell { width: 3.3em; }  /* 한글 3글자 + 약간 여유 */
+.Gcell { width: 4em; }    /* 숫자 4글자 + 약간 여유 */
 </style>
 </head>
 <body>
@@ -32,9 +36,167 @@ const rooms = ["15","14","13","10","동8","동9"];
 const times = ["10","11","12","1","2","3","4","5","6","7","8","9","10","11"];
 const tbody = document.getElementById("tbody");
 
-// 유니크 key
 function key(date,id){ return date+"_"+id; }
+const datePicker = document.getElementById("datePicker");
+const today = new Date().toISOString().split('T')[0];
+datePicker.value = today;
 
+let composing = false;
+
+function generateTable(date){
+  tbody.innerHTML="";
+
+  // 방 번호
+  let headerRow="<tr><td>방 번호</td>";
+  rooms.forEach(r=>{ headerRow+="<td colspan='3'>"+r+"</td>"; });
+  headerRow+="</tr>";
+  tbody.innerHTML+=headerRow;
+
+  // 메모 M1~M3
+  for(let m=1;m<=3;m++){
+    let row="<tr><td>M"+m+"</td>";
+    rooms.forEach(r=>{
+      for(let c=1;c<=3;c++){
+        let textId=key(date,"M"+m+"_"+r+"_c"+c);
+        row += `<td><div contenteditable="true" class="editable Mcell" id="${textId}" data-col="${c}" data-type="M"></div></td>`;
+      }
+    });
+    row+="</tr>"; tbody.innerHTML+=row;
+  }
+
+  // M/G/R
+  let mgrRow="<tr><td>M/G/R</td>";
+  rooms.forEach(r=>{
+    mgrRow+=`<td><div contenteditable='true' class='editable Mcell' data-type='M' data-col='1' id='${key(date,"M_"+r)}'></div></td>`;
+    mgrRow+=`<td><div contenteditable='true' class='editable Gcell' data-type='G' data-col='2' id='${key(date,"G_"+r)}'></div></td>`;
+    mgrRow+=`<td><div contenteditable='true' class='editable Rcell' data-type='R' data-col='3' id='${key(date,"R_"+r)}'></div></td>`;
+  });
+  mgrRow+="</tr>"; tbody.innerHTML+=mgrRow;
+
+  // 시간 행
+  times.forEach(t=>{
+    let row="<tr><td class='time'>"+t+"</td>";
+    rooms.forEach(r=>{
+      for(let c=1;c<=3;c++){
+        let textId=key(date,"T"+t+"_"+r+"_c"+c);
+        row+=`<td><div contenteditable='true' class='editable' id='${textId}' data-col='${c}'></div></td>`;
+      }
+    });
+    row+="</tr>"; tbody.innerHTML+=row;
+  });
+
+  // TW/TB
+  ["TW","TB"].forEach(label=>{
+    let row="<tr><td>"+label+"</td>";
+    rooms.forEach(r=>{
+      let aId=key(date,label+"_"+r+"_A");
+      let bId=key(date,label+"_"+r+"_B");
+      row+=`<td colspan="2"><div contenteditable="true" class="editable" id='${aId}'></div></td>`;
+      row+=`<td><input type='checkbox' id='${bId}'></td>`;
+    });
+    row+="</tr>"; tbody.innerHTML+=row;
+  });
+}
+
+function handleInput(cell){
+  const type=cell.dataset.type;
+  const col=cell.dataset.col;
+  let val=cell.innerText.trim();
+
+  if(type=="M"){
+    if(col=="1") val=val.replace(/[^가-힣]/g,"").slice(0,2);
+    else if(col=="2") val=val.replace(/[^0-9]/g,"").slice(0,4);
+    else if(col=="3") val=val.replace(/[^가-힣]/g,"").slice(0,2);
+  }
+  if(type=="R") val=val.replace(/[^가-힣]/g,"").slice(0,3);
+  if(type=="G") val=val.replace(/[^0-9]/g,"").slice(0,4); // 그대로 표시
+
+  cell.innerText=val;
+
+  // 칸2 입력 시 칸1 강조
+  if(col=="2"){
+    const parts=cell.id.split("_");
+    const c1id=parts.slice(0,2).join("_")+"_c1";
+    const c1=document.getElementById(c1id);
+    if(val!="") c1.classList.add("highlight");
+    else c1.classList.remove("highlight");
+  }
+}
+
+function attachEvents(date){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    cell.addEventListener("keydown",e=>{ if(e.key==="Enter") e.preventDefault(); });
+    cell.addEventListener("compositionstart",()=>{ composing=true; });
+    cell.addEventListener("compositionend",()=>{ composing=false; handleInput(cell); });
+    cell.addEventListener("input",e=>{ if(!composing) handleInput(cell); });
+  });
+
+  document.addEventListener("change",e=>{
+    if(e.target.type==="checkbox"){
+      const aId=e.target.id.replace("_B","_A");
+      const aCell=document.getElementById(aId);
+      if(aCell){
+        if(e.target.checked) aCell.classList.add("highlight");
+        else aCell.classList.remove("highlight");
+      }
+    }
+  });
+}
+
+function saveData(date){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    localStorage.setItem(cell.id,cell.innerText);
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+    localStorage.setItem(ch.id,ch.checked?"1":"0");
+  });
+  alert("저장되었습니다");
+}
+
+function loadData(date){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    const saved=localStorage.getItem(cell.id);
+    if(saved!==null) cell.innerText=saved;
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+    const saved=localStorage.getItem(ch.id);
+    ch.checked=saved==="1";
+    if(ch.checked){
+      const aId=ch.id.replace("_B","_A");
+      const aCell=document.getElementById(aId);
+      if(aCell) aCell.classList.add("highlight");
+    }
+  });
+}
+
+// 초기
+generateTable(today);
+attachEvents(today);
+loadData(today);
+
+// 오늘 버튼
+document.getElementById("todayBtn").addEventListener("click",()=>{
+  datePicker.value=today;
+  generateTable(today);
+  attachEvents(today);
+  loadData(today);
+});
+
+// 날짜 변경
+datePicker.addEventListener("change",()=>{
+  const d=datePicker.value;
+  generateTable(d);
+  attachEvents(d);
+  loadData(d);
+});
+
+// 저장 버튼
+document.getElementById("saveBtn").addEventListener("click",()=>{
+  saveData(datePicker.value);
+});
+</script>
+</body>
+</html>
 // 오늘 날짜
 const datePicker = document.getElementById("datePicker");
 const today = new Date().toISOString().split('T')[0];
@@ -439,6 +601,7 @@ document.getElementById("saveBtn").addEventListener("click", ()=>{
 </script>
 </body>
 </html>
+
 
 
 
