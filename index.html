@@ -27,33 +27,51 @@
     white-space: nowrap;
   }
 
-  /* 고정 영역 */
-  th.fixed, td.fixed {
+  /* 방 번호 헤더 상단 고정 */
+  th.fixed-header {
     position: sticky;
-    top: 0; /* 상단 고정 */
+    top: 0;
     background: #f9f9f9;
-    z-index: 2;
+    z-index: 10;
   }
 
-  /* M/G/R 고정 칸 */
-  th.mgr, td.mgr {
-    position: sticky;
-    left: 0; /* 왼쪽 고정 */
-    background: #f1f1f1;
-    z-index: 3;
-    min-width: 40px; /* 칸 폭 조정 */
-  }
-
-  /* 입력 가능 칸 */
-  input {
+  /* 메모 입력 칸 */
+  input.memo-input {
     width: 100%;
     box-sizing: border-box;
-    border: none;
     text-align: center;
+    border: none;
+    padding: 4px;
   }
 
-  input:focus {
+  input.memo-input:focus {
     outline: 1px solid #007bff;
+  }
+
+  /* M/G/R 읽기 전용 */
+  td.mgr {
+    background: #f1f1f1;
+    font-weight: bold;
+  }
+
+  /* 방 입력 칸 */
+  input.room-input {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    border: none;
+  }
+
+  input.room-input:focus {
+    outline: 1px solid #007bff;
+  }
+
+  /* 시간 칸 고정 */
+  td.time-cell {
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 2;
   }
 </style>
 </head>
@@ -64,36 +82,52 @@
   <table>
     <thead>
       <tr>
-        <th class="mgr">M</th>
-        <th class="mgr">G</th>
-        <th class="mgr">R</th>
-        <th class="fixed">시간</th>
-        <th>방1</th>
-        <th>방2</th>
-        <th>방3</th>
-        <th>방4</th>
-        <th>방5</th>
-        <th>방6</th>
+        <th class="fixed-header">방1</th>
+        <th class="fixed-header">방2</th>
+        <th class="fixed-header">방3</th>
+        <th class="fixed-header">방4</th>
+        <th class="fixed-header">방5</th>
+        <th class="fixed-header">방6</th>
       </tr>
     </thead>
     <tbody>
-      <!-- 예시: 10시~23시 -->
+      <!-- 메모 3줄 -->
+      <tr>
+        <td><input class="memo-input" placeholder="메모1-1"></td>
+        <td><input class="memo-input" placeholder="메모1-2"></td>
+        <td><input class="memo-input" placeholder="메모1-3"></td>
+        <td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td><input class="memo-input" placeholder="메모2-1"></td>
+        <td><input class="memo-input" placeholder="메모2-2"></td>
+        <td><input class="memo-input" placeholder="메모2-3"></td>
+        <td></td><td></td><td></td>
+      </tr>
+      <tr>
+        <td><input class="memo-input" placeholder="메모3-1"></td>
+        <td><input class="memo-input" placeholder="메모3-2"></td>
+        <td><input class="memo-input" placeholder="메모3-3"></td>
+        <td></td><td></td><td></td>
+      </tr>
+
+      <!-- M/G/R 읽기 전용 -->
+      <tr>
+        <td class="mgr">M</td>
+        <td class="mgr">G</td>
+        <td class="mgr">R</td>
+        <td></td><td></td><td></td>
+      </tr>
+
+      <!-- 시간 + 방 입력 칸 예시 -->
       <script>
         const tbody = document.currentScript.parentElement;
         for (let hour = 10; hour <= 23; hour++) {
           const tr = document.createElement('tr');
 
-          // M/G/R 고정값
-          ['M', 'G', 'R'].forEach(val => {
-            const td = document.createElement('td');
-            td.className = 'mgr';
-            td.textContent = val; // 실제 데이터로 변경 가능
-            tr.appendChild(td);
-          });
-
-          // 시간 고정
+          // 시간 칸
           const tdTime = document.createElement('td');
-          tdTime.className = 'fixed';
+          tdTime.className = 'time-cell';
           tdTime.textContent = hour + '시';
           tr.appendChild(tdTime);
 
@@ -102,6 +136,7 @@
             const td = document.createElement('td');
             const input = document.createElement('input');
             input.type = 'text';
+            input.className = 'room-input';
             input.placeholder = '입력';
             td.appendChild(input);
             tr.appendChild(td);
