@@ -15,25 +15,51 @@ h1 {
   text-align: center;
 }
 
+.top-bar {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 5px;
+}
+
 .table-container {
   overflow-x: auto;
 }
 
 table {
   border-collapse: collapse;
-  min-width: 1200px;
+  min-width: 1000px;
 }
 
 th, td {
   border: 1px solid #ccc;
-  padding: 5px;
+  padding: 4px;
   text-align: center;
 }
 
 input {
-  width: 90px;
   box-sizing: border-box;
+  text-align: center;
 }
+
+/* M (한글 2글자) */
+.input-m {
+  width: 50px;
+}
+
+/* G (숫자 4자리) */
+.input-g {
+  width: 60px;
+}
+
+/* R (한글 2글자, 더 슬림) */
+.input-r {
+  width: 45px;
+}
+
 .time {
   font-weight: bold;
   background: #f2f2f2;
@@ -45,23 +71,30 @@ input {
 
 <h1>예약관리</h1>
 
+<div class="top-bar">
+  날짜: 
+  <input type="date" id="datePicker">
+  <button onclick="setToday()">오늘</button>
+  <button onclick="saveData()">저장하기</button>
+</div>
+
 <div class="table-container">
-<table id="reservationTable">
+<table>
 <thead>
 <tr>
 <th>시간</th>
-<th colspan="3">1번방</th>
-<th colspan="3">2번방</th>
-<th colspan="3">3번방</th>
-<th colspan="3">4번방</th>
-<th colspan="3">5번방</th>
-<th colspan="3">6번방</th>
+<th colspan="3">15</th>
+<th colspan="3">14</th>
+<th colspan="3">13</th>
+<th colspan="3">10</th>
+<th colspan="3">동8</th>
+<th colspan="3">동9</th>
 </tr>
 <tr>
 <th></th>
 <script>
 for(let i=0;i<6;i++){
-  document.write("<th>이름</th><th>전화뒤4</th><th>비고</th>");
+  document.write("<th>M</th><th>G</th><th>R</th>");
 }
 </script>
 </tr>
@@ -76,22 +109,77 @@ const startHour = 10;
 const endHour = 23;
 const rooms = 6;
 const tableBody = document.getElementById("tableBody");
+const datePicker = document.getElementById("datePicker");
 
-for(let hour = startHour; hour <= endHour; hour++){
-  let row = "<tr>";
-  row += `<td class="time">${hour}:00</td>`;
+function setToday(){
+  const today = new Date().toISOString().split("T")[0];
+  datePicker.value = today;
+  loadData();
+}
+
+function generateTable(){
+  tableBody.innerHTML = "";
+  for(let hour = startHour; hour <= endHour; hour++){
+    let row = "<tr>";
+    row += `<td class="time">${hour}:00</td>`;
+    
+    for(let r=1; r<=rooms; r++){
+      for(let c=1; c<=3; c++){
+        let key = getKey(hour,r,c);
+        let saved = localStorage.getItem(key) || "";
+        
+        if(c === 1){
+          row += `<td><input class="input-m" maxlength="2" 
+                   oninput="this.value=this.value.replace(/[^가-힣]/g,'')"
+                   id="${key}" value="${saved}"></td>`;
+        }
+        else if(c === 2){
+          row += `<td><input class="input-g" maxlength="4" inputmode="numeric"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                   id="${key}" value="${saved}"></td>`;
+        }
+        else{
+          row += `<td><input class="input-r" maxlength="2"
+                   oninput="this.value=this.value.replace(/[^가-힣]/g,'')"
+                   id="${key}" value="${saved}"></td>`;
+        }
+      }
+    }
+    row += "</tr>";
+    tableBody.innerHTML += row;
+  }
+}
+
+function getKey(hour,r,c){
+  return datePicker.value + "_" + hour + "_" + r + "_" + c;
+}
+
+function saveData(){
+  if(!datePicker.value){
+    alert("날짜를 선택하세요");
+    return;
+  }
   
-  for(let r=1; r<=rooms; r++){
-    for(let c=1; c<=3; c++){
-      let key = `${hour}_${r}_${c}`;
-      let saved = localStorage.getItem(key) || "";
-      row += `<td><input value="${saved}" 
-              onchange="localStorage.setItem('${key}', this.value)"></td>`;
+  for(let hour = startHour; hour <= endHour; hour++){
+    for(let r=1; r<=rooms; r++){
+      for(let c=1; c<=3; c++){
+        let key = getKey(hour,r,c);
+        let value = document.getElementById(key).value;
+        localStorage.setItem(key,value);
+      }
     }
   }
-  row += "</tr>";
-  tableBody.innerHTML += row;
+  alert("저장 완료!");
 }
+
+function loadData(){
+  if(!datePicker.value) return;
+  generateTable();
+}
+
+datePicker.addEventListener("change", loadData);
+
+setToday();
 </script>
 
 </body>
