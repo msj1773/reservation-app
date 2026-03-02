@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>예약 관리 테이블</title>
+<title>예약 관리</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -17,98 +17,63 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    min-width: 800px; /* 최소 가로 폭 */
+    min-width: 800px; /* 모바일 대비 최소 폭 */
   }
 
   th, td {
     border: 1px solid #ccc;
-    padding: 8px;
     text-align: center;
+    padding: 6px;
     white-space: nowrap;
   }
 
-  /* 방 번호 헤더 상단 고정 */
-  th.fixed-header {
-    position: sticky;
-    top: 0;
-    background: #f9f9f9;
-    z-index: 10;
-  }
-
-  /* 메모 입력 칸 */
-  input.memo-input {
+  /* 입력 가능한 메모, TW/TB contenteditable 칸 */
+  .editable {
+    background: #fff9c4; /* 연한 노랑 */
+    min-height: 24px;
     width: 100%;
     box-sizing: border-box;
-    text-align: center;
-    border: none;
-    padding: 4px;
-  }
-
-  input.memo-input:focus {
-    outline: 1px solid #007bff;
+    outline: none;
   }
 
   /* M/G/R 읽기 전용 */
-  td.mgr {
-    background: #f1f1f1;
+  .mgr {
+    background: #e0e0e0; /* 연한 회색 */
     font-weight: bold;
   }
 
-  /* 방 입력 칸 */
-  input.room-input {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-    border: none;
+  /* 체크박스 선택 시 강조 */
+  .highlight {
+    background: #ffe5e5 !important;
   }
 
-  input.room-input:focus {
-    outline: 1px solid #007bff;
-  }
-
-  /* 시간 칸 고정 */
-  td.time-cell {
-    position: sticky;
-    left: 0;
-    background: #fff;
-    z-index: 2;
+  /* 시간 칸 고정 폭 */
+  .time {
+    width: 50px;
   }
 </style>
 </head>
 <body>
 
-<h2>예약 관리 테이블</h2>
+<h2>예약 관리</h2>
 <div class="table-wrapper">
-  <table>
-    <thead>
-      <tr>
-        <th class="fixed-header">방1</th>
-        <th class="fixed-header">방2</th>
-        <th class="fixed-header">방3</th>
-        <th class="fixed-header">방4</th>
-        <th class="fixed-header">방5</th>
-        <th class="fixed-header">방6</th>
-      </tr>
-    </thead>
-    <tbody>
+  <table id="table">
+    <tbody id="tbody">
       <!-- 메모 3줄 -->
       <tr>
-        <td><input class="memo-input" placeholder="메모1-1"></td>
-        <td><input class="memo-input" placeholder="메모1-2"></td>
-        <td><input class="memo-input" placeholder="메모1-3"></td>
-        <td></td><td></td><td></td>
+        <td><div class="editable" contenteditable="true">메모1-1</div></td>
+        <td><div class="editable" contenteditable="true">메모1-2</div></td>
+        <td><div class="editable" contenteditable="true">메모1-3</div></td>
       </tr>
       <tr>
-        <td><input class="memo-input" placeholder="메모2-1"></td>
-        <td><input class="memo-input" placeholder="메모2-2"></td>
-        <td><input class="memo-input" placeholder="메모2-3"></td>
-        <td></td><td></td><td></td>
+        <td><div class="editable" contenteditable="true">메모2-1</div></td>
+        <td><div class="editable" contenteditable="true">메모2-2</div></td>
+        <td><div class="editable" contenteditable="true">메모2-3</div></td>
       </tr>
       <tr>
-        <td><input class="memo-input" placeholder="메모3-1"></td>
-        <td><input class="memo-input" placeholder="메모3-2"></td>
-        <td><input class="memo-input" placeholder="메모3-3"></td>
-        <td></td><td></td><td></td>
+        <td><div class="editable" contenteditable="true">메모3-1</div></td>
+        <td><div class="editable" contenteditable="true">메모3-2</div></td>
+        <td><div class="editable" contenteditable="true">메모3-3</div></td>
       </tr>
 
       <!-- M/G/R 읽기 전용 -->
@@ -116,38 +81,84 @@
         <td class="mgr">M</td>
         <td class="mgr">G</td>
         <td class="mgr">R</td>
-        <td></td><td></td><td></td>
       </tr>
-
-      <!-- 시간 + 방 입력 칸 예시 -->
-      <script>
-        const tbody = document.currentScript.parentElement;
-        for (let hour = 10; hour <= 23; hour++) {
-          const tr = document.createElement('tr');
-
-          // 시간 칸
-          const tdTime = document.createElement('td');
-          tdTime.className = 'time-cell';
-          tdTime.textContent = hour + '시';
-          tr.appendChild(tdTime);
-
-          // 방 입력 칸 6개
-          for (let i = 0; i < 6; i++) {
-            const td = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'room-input';
-            input.placeholder = '입력';
-            td.appendChild(input);
-            tr.appendChild(td);
-          }
-
-          tbody.appendChild(tr);
-        }
-      </script>
     </tbody>
   </table>
 </div>
 
+<!-- TW/TB 동적 생성 -->
+<script>
+const rooms = ["방1","방2","방3","방4","방5","방6"];
+const tbody = document.getElementById("tbody");
+
+function key(id){ return "cell_"+id; }
+
+["TW","TB"].forEach(label=>{
+  let row="<tr><td class='time'>"+label+"</td>";
+  rooms.forEach((r,ri)=>{
+    let textId=key(label+"_r"+ri);
+    let checkId=key(label+"_r"+ri+"_check");
+    row+="<td colspan='2'><div contenteditable='true' class='editable' id='"+textId+"'></div></td>";
+    row+="<td><input type='checkbox' id='"+checkId+"'></td>";
+  });
+  row+="</tr>";
+  tbody.innerHTML+=row;
+});
+
+attachEvents();
+loadData();
+
+/* 이벤트 처리 */
+function attachEvents(){
+  // Enter 줄바꿈 방지
+  document.querySelectorAll(".editable").forEach(cell=>{
+    cell.addEventListener("keydown", e=>{
+      if(e.key==="Enter") e.preventDefault();
+    });
+  });
+
+  // 체크박스 색상 변경 및 localStorage
+  document.addEventListener("change", function(e){
+    if(e.target.type==="checkbox"){
+      let textId=e.target.id.replace("_check","");
+      let cell=document.getElementById(textId);
+      if(e.target.checked){
+        cell.classList.add("highlight");
+        localStorage.setItem(e.target.id,"1");
+      }else{
+        cell.classList.remove("highlight");
+        localStorage.removeItem(e.target.id);
+      }
+    }
+  });
+}
+
+/* 저장 */
+function saveData(){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    localStorage.setItem(cell.id, cell.innerText);
+  });
+  alert("저장되었습니다");
+}
+
+/* 불러오기 */
+function loadData(){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    let saved = localStorage.getItem(cell.id);
+    if(saved!==null) cell.innerText = saved;
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+    let saved = localStorage.getItem(ch.id);
+    if(saved){
+      ch.checked = true;
+      let textId = ch.id.replace("_check","");
+      let cell = document.getElementById(textId);
+      if(cell) cell.classList.add("highlight");
+    }
+  });
+}
+</script>
+
 </body>
 </html>
+
