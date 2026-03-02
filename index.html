@@ -4,12 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>예약관리</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 10px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 5px;
+  text-align: center;
+}
+
+input {
+  width: 90px;
+  box-sizing: border-box;
+}
+.time {
+  font-weight: bold;
+  background: #f2f2f2;
+}
+</style>
 </head>
+
 <body>
 
-<h1>예약관리 앱</h1>
+<h1>예약관리</h1>
 
-<p>여기에 표가 들어갈 예정</p>
+<div class="table-container">
+<table id="reservationTable">
+<thead>
+<tr>
+<th>시간</th>
+<th colspan="3">1번방</th>
+<th colspan="3">2번방</th>
+<th colspan="3">3번방</th>
+<th colspan="3">4번방</th>
+<th colspan="3">5번방</th>
+<th colspan="3">6번방</th>
+</tr>
+<tr>
+<th></th>
+<script>
+for(let i=0;i<6;i++){
+  document.write("<th>이름</th><th>전화뒤4</th><th>비고</th>");
+}
+</script>
+</tr>
+</thead>
+<tbody id="tableBody">
+</tbody>
+</table>
+</div>
+
+<script>
+const startHour = 10;
+const endHour = 23;
+const rooms = 6;
+const tableBody = document.getElementById("tableBody");
+
+for(let hour = startHour; hour <= endHour; hour++){
+  let row = "<tr>";
+  row += `<td class="time">${hour}:00</td>`;
+  
+  for(let r=1; r<=rooms; r++){
+    for(let c=1; c<=3; c++){
+      let key = `${hour}_${r}_${c}`;
+      let saved = localStorage.getItem(key) || "";
+      row += `<td><input value="${saved}" 
+              onchange="localStorage.setItem('${key}', this.value)"></td>`;
+    }
+  }
+  row += "</tr>";
+  tableBody.innerHTML += row;
+}
+</script>
 
 </body>
 </html>
