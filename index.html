@@ -33,16 +33,24 @@ th { background:#f2f2f2; }
   background:#fafafa;
 }
 
-/* 🔥 안정형 셀 스타일 */
+/* 🔥 셀 */
 .cell {
   min-width:55px;
-  height:36px;
-  line-height:36px; /* 세로 가운데 */
-  text-align:center;
-  vertical-align:middle;
+  height:38px;
+  padding:0;
 }
 
-.cell:focus {
+/* 🔥 입력 영역 (모든 셀 동일 구조) */
+.inner {
+  width:100%;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+}
+
+.inner:focus {
   outline:none;
   background:#eef7ff;
 }
@@ -77,6 +85,10 @@ function key(id){
   return dateInput.value + "_" + id;
 }
 
+function makeCell(id, extraClass=""){
+  return "<td class='cell'><div contenteditable='true' class='inner "+extraClass+"' id='"+key(id)+"'></div></td>";
+}
+
 function generate(){
 
 thead.innerHTML="";
@@ -95,8 +107,7 @@ for(let line=1; line<=3; line++){
   let row="<tr><td></td>";
   rooms.forEach((r,ri)=>{
     for(let c=1;c<=3;c++){
-      let id="memo_"+line+"_"+ri+"_"+c;
-      row+="<td contenteditable='true' class='cell' id='"+key(id)+"'></td>";
+      row+=makeCell("memo_"+line+"_"+ri+"_"+c);
     }
   });
   row+="</tr>";
@@ -115,16 +126,9 @@ thead.innerHTML+=rowMGR;
 for(let h=startHour; h<=endHour; h++){
   let row="<tr><td class='time'>"+h+"</td>";
   rooms.forEach((r,ri)=>{
-
-    let id1="h"+h+"_r"+ri+"_m";
-    row+="<td contenteditable='true' class='cell mcell' id='"+key(id1)+"'></td>";
-
-    let id2="h"+h+"_r"+ri+"_g";
-    row+="<td contenteditable='true' class='cell gcell' id='"+key(id2)+"'></td>";
-
-    let id3="h"+h+"_r"+ri+"_r";
-    row+="<td contenteditable='true' class='cell rcell' id='"+key(id3)+"'></td>";
-
+    row+=makeCell("h"+h+"_r"+ri+"_m","mcell");
+    row+=makeCell("h"+h+"_r"+ri+"_g","gcell");
+    row+=makeCell("h"+h+"_r"+ri+"_r","rcell");
   });
   row+="</tr>";
   tbody.innerHTML+=row;
@@ -134,11 +138,11 @@ for(let h=startHour; h<=endHour; h++){
 ["TW","TB"].forEach(label=>{
   let row="<tr><td class='time'>"+label+"</td>";
   rooms.forEach((r,ri)=>{
-    let textId=label+"_r"+ri;
-    let checkId=textId+"_check";
+    let textId=key(label+"_r"+ri);
+    let checkId=key(label+"_r"+ri+"_check");
 
-    row+="<td colspan='2' contenteditable='true' class='cell' id='"+key(textId)+"'></td>";
-    row+="<td><input type='checkbox' id='"+key(checkId)+"'></td>";
+    row+="<td colspan='2' class='cell'><div contenteditable='true' class='inner' id='"+textId+"'></div></td>";
+    row+="<td><input type='checkbox' id='"+checkId+"'></td>";
   });
   row+="</tr>";
   tbody.innerHTML+=row;
@@ -152,7 +156,7 @@ loadData();
 function applyRestrictions(){
 
 // 줄바꿈 금지
-document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+document.querySelectorAll(".inner").forEach(cell=>{
   cell.addEventListener("keydown",e=>{
     if(e.key==="Enter") e.preventDefault();
   });
@@ -179,43 +183,48 @@ document.querySelectorAll(".gcell").forEach(cell=>{
   });
 });
 
+// TW/TB 체크 시 색 변경
+document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+  ch.addEventListener("change",function(){
+    let textId=this.id.replace("_check","");
+    let cell=document.getElementById(textId);
+    if(this.checked){
+      cell.style.background="#ffe5e5";
+      localStorage.setItem(this.id,"1");
+    }else{
+      cell.style.background="";
+      localStorage.removeItem(this.id);
+    }
+  });
+});
+
 }
 
 /* ===== 저장 ===== */
 function saveData(){
-
-document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+document.querySelectorAll(".inner").forEach(cell=>{
   localStorage.setItem(cell.id,cell.innerText);
 });
-
-document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
-  if(ch.checked){
-    localStorage.setItem(ch.id,"1");
-  }else{
-    localStorage.removeItem(ch.id);
-  }
-});
-
 alert("저장되었습니다");
 }
 
 /* ===== 불러오기 ===== */
 function loadData(){
-
-document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+document.querySelectorAll(".inner").forEach(cell=>{
   let saved=localStorage.getItem(cell.id);
   if(saved!==null){
     cell.innerText=saved;
   }
 });
-
 document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
   let saved=localStorage.getItem(ch.id);
   if(saved){
     ch.checked=true;
+    let textId=ch.id.replace("_check","");
+    let cell=document.getElementById(textId);
+    if(cell) cell.style.background="#ffe5e5";
   }
 });
-
 }
 
 generate();
