@@ -6,192 +6,204 @@
 <title>예약관리</title>
 
 <style>
-body { font-family: Arial, sans-serif; margin: 10px; }
-h1 { text-align:center; }
-
-.top-bar { text-align:center; margin-bottom:10px; }
-button { padding:5px 10px; margin:5px; }
-
-table { border-collapse: collapse; min-width:1200px; }
+body { font-family:sans-serif; margin:0; padding:10px; }
+table { border-collapse:collapse; font-size:14px; }
 th, td {
   border:1px solid #ccc;
-  padding:4px;
   text-align:center;
+  vertical-align:middle;
 }
+th { background:#f2f2f2; }
 
-.time { background:#f2f2f2; font-weight:bold; width:50px; }
+.time { width:40px; font-weight:bold; background:#fafafa; }
 
-input { text-align:center; box-sizing:border-box; }
-
-.input-m { width:45px; }
-.input-g { width:55px; }
-.input-r { width:45px; }
-
-.input-tw { width:80px; }
-
-.memo-input { width:95%; }
-
-.checked { background:#ffe08a; }
-
-.table-wrap { overflow-x:auto; }
+.cell {
+  min-width:55px;
+  height:32px;
+}
+.cell:focus {
+  outline:none;
+  background:#eef7ff;
+}
 </style>
 </head>
 
 <body>
 
-<h1>예약관리</h1>
+<h3>예약관리</h3>
+<input type="date" id="date">
 
-<div class="top-bar">
-날짜:
-<input type="date" id="datePicker">
-<button onclick="setToday()">오늘</button>
-<button onclick="saveData()">저장</button>
-</div>
-
-<div class="table-wrap">
 <table>
-<thead>
-<tr>
-<th>시간</th>
-<th colspan="3">15</th>
-<th colspan="3">14</th>
-<th colspan="3">13</th>
-<th colspan="3">10</th>
-<th colspan="3">동8</th>
-<th colspan="3">동9</th>
-</tr>
-<tr>
-<th></th>
-<script>
-for(let i=0;i<6;i++){
-document.write("<th>M</th><th>G</th><th>R</th>");
-}
-</script>
-</tr>
-</thead>
-
-<tbody id="tableBody">
-</tbody>
+<thead id="thead"></thead>
+<tbody id="tbody"></tbody>
 </table>
-</div>
 
 <script>
-const startHour=10;
-const endHour=23;
-const rooms=6;
-const tableBody=document.getElementById("tableBody");
-const datePicker=document.getElementById("datePicker");
 
-function setToday(){
-const today=new Date().toISOString().split("T")[0];
-datePicker.value=today;
-loadData();
-}
+const rooms = ["15","14","13","10","동8","동9"];
+const startHour = 10;
+const endHour = 23;
 
-function key(label,r,c){
-return datePicker.value+"_"+label+"_"+r+"_"+c;
-}
+const thead = document.getElementById("thead");
+const tbody = document.getElementById("tbody");
+const dateInput = document.getElementById("date");
+
+dateInput.value = new Date().toISOString().substring(0,10);
+dateInput.addEventListener("change", generate);
+
+function key(id){ return dateInput.value + "_" + id; }
 
 function generate(){
-tableBody.innerHTML="";
 
-// 상단 메모 3줄
-for(let i=1;i<=3;i++){
-let row="<tr>";
-if(i===1) row+="<td rowspan='3' class='time'>메모</td>";
-row+="<td colspan='18'><input class='memo-input' id='"+key("memo",0,i)+"'></td>";
+thead.innerHTML="";
+tbody.innerHTML="";
+
+/* ====== 헤더 1: 방번호 ====== */
+let row1="<tr><th class='time'>시간</th>";
+rooms.forEach(r=>{
+row1+="<th colspan='3'>"+r+"</th>";
+});
+row1+="</tr>";
+thead.innerHTML+=row1;
+
+/* ====== 헤더 2~4: 메모 3줄 ====== */
+for(let line=1; line<=3; line++){
+let row="<tr><th></th>";
+rooms.forEach((r,ri)=>{
+for(let c=1;c<=3;c++){
+let id="memo_"+line+"_"+ri+"_"+c;
+row+="<th contenteditable='true' class='cell' id='"+key(id)+"'></th>";
+}
+});
 row+="</tr>";
-tableBody.innerHTML+=row;
+thead.innerHTML+=row;
 }
 
-// 시간표
-for(let h=startHour;h<=endHour;h++){
-let row="<tr>";
-row+="<td class='time'>"+h+"</td>";
+/* ====== 헤더 5: M G R ====== */
+let rowMGR="<tr><th></th>";
+rooms.forEach((r,ri)=>{
+rowMGR+="<th>M</th><th>G</th><th>R</th>";
+});
+rowMGR+="</tr>";
+thead.innerHTML+=rowMGR;
 
-for(let r=1;r<=rooms;r++){
+/* ====== 시간표 ====== */
+for(let h=startHour; h<=endHour; h++){
+let row="<tr><td class='time'>"+h+"</td>";
+rooms.forEach((r,ri)=>{
 
 // M
-let k1=key(h,r,"m");
-row+="<td><input class='input-m' maxlength='2' onblur=\"this.value=this.value.replace(/[^가-힣]/g,'')\" id='"+k1+"'></td>";
+let id1="h"+h+"_r"+ri+"_m";
+row+="<td contenteditable='true' class='cell mcell' id='"+key(id1)+"'></td>";
 
 // G
-let k2=key(h,r,"g");
-row+="<td><input class='input-g' maxlength='4' inputmode='numeric' oninput=\"this.value=this.value.replace(/[^0-9]/g,'')\" id='"+k2+"'></td>";
+let id2="h"+h+"_r"+ri+"_g";
+row+="<td contenteditable='true' class='cell gcell' id='"+key(id2)+"'></td>";
 
 // R
-let k3=key(h,r,"r");
-row+="<td><input class='input-r' maxlength='2' onblur=\"this.value=this.value.replace(/[^가-힣]/g,'')\" id='"+k3+"'></td>";
-}
+let id3="h"+h+"_r"+ri+"_r";
+row+="<td contenteditable='true' class='cell' id='"+key(id3)+"'></td>";
 
+});
 row+="</tr>";
-tableBody.innerHTML+=row;
+tbody.innerHTML+=row;
 }
 
-// TW / TB
+/* ====== TW / TB ====== */
 ["TW","TB"].forEach(label=>{
-let row="<tr>";
-row+="<td class='time'>"+label+"</td>";
-
-for(let r=1;r<=rooms;r++){
-let textKey=key(label,r,"text");
-let checkKey=key(label,r,"check");
-
-row+="<td colspan='2'><input class='input-tw' id='"+textKey+"'></td>";
-row+="<td><input type='checkbox' onchange=\"toggle('"+textKey+"',this)\"></td>";
-}
-
+let row="<tr><td class='time'>"+label+"</td>";
+rooms.forEach((r,ri)=>{
+let textId=label+"_r"+ri;
+let checkId=textId+"_check";
+row+="<td colspan='2' contenteditable='true' class='cell' id='"+key(textId)+"'></td>";
+row+="<td><input type='checkbox' id='"+key(checkId)+"'></td>";
+});
 row+="</tr>";
-tableBody.innerHTML+=row;
+tbody.innerHTML+=row;
 });
 
+applyRestrictions();
 loadData();
 }
 
-function toggle(textKey,cb){
-let input=document.getElementById(textKey);
-if(cb.checked){
-input.classList.add("checked");
+/* ===== 입력 제한 ===== */
+function applyRestrictions(){
+
+// 줄바꿈 금지
+document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+cell.addEventListener("keydown",e=>{
+if(e.key==="Enter") e.preventDefault();
+});
+});
+
+// M 한글2
+document.querySelectorAll(".mcell").forEach(cell=>{
+cell.addEventListener("input",function(){
+this.innerText=this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
+saveData();
+});
+});
+
+// G 숫자4
+document.querySelectorAll(".gcell").forEach(cell=>{
+cell.addEventListener("input",function(){
+this.innerText=this.innerText.replace(/[^0-9]/g,"").slice(0,4);
+saveData();
+});
+});
+
+// 기본 셀 저장
+document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+cell.addEventListener("input",saveData);
+});
+
+// 체크박스 저장 + 색
+document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+ch.addEventListener("change",function(){
+let textId=this.id.replace("_check","");
+let cell=document.getElementById(textId);
+if(this.checked){
+cell.style.background="#ffe5e5";
+localStorage.setItem(this.id,"1");
 }else{
-input.classList.remove("checked");
+cell.style.background="";
+localStorage.removeItem(this.id);
 }
+saveData();
+});
+});
 }
 
+/* ===== 저장 ===== */
 function saveData(){
-if(!datePicker.value){alert("날짜 선택");return;}
-document.querySelectorAll("input").forEach(el=>{
-if(el.type==="checkbox"){
-localStorage.setItem(el.parentElement.previousElementSibling.firstChild.id+"_check",el.checked);
-}else{
-localStorage.setItem(el.id,el.value);
-}
+document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+localStorage.setItem(cell.id,cell.innerText);
 });
-alert("저장완료");
 }
 
+/* ===== 불러오기 ===== */
 function loadData(){
-if(!datePicker.value)return;
-document.querySelectorAll("input").forEach(el=>{
-let val=localStorage.getItem(el.id);
-if(val!==null){
-if(el.type==="checkbox"){
-el.checked=(val==="true");
-if(el.checked){
-let text=el.parentElement.previousElementSibling.firstChild;
-text.classList.add("checked");
-}
-}else{
-el.value=val;
-}
+
+// 텍스트
+document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
+let saved=localStorage.getItem(cell.id);
+if(saved!==null) cell.innerText=saved;
+});
+
+// 체크
+document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+let saved=localStorage.getItem(ch.id);
+if(saved){
+ch.checked=true;
+let textId=ch.id.replace("_check","");
+let cell=document.getElementById(textId);
+if(cell) cell.style.background="#ffe5e5";
 }
 });
 }
 
-datePicker.addEventListener("change",generate);
-
-setToday();
 generate();
-</script>
 
+</script>
 </body>
 </html>
