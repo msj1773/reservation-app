@@ -10,28 +10,36 @@ body { font-family:sans-serif; margin:0; padding:10px; }
 
 button {
   padding:6px 12px;
-  margin-left:10px;
+  margin-left:8px;
 }
 
-table { border-collapse:collapse; font-size:14px; }
+table {
+  border-collapse:collapse;
+  font-size:14px;
+}
 
 th, td {
   border:1px solid #ccc;
   text-align:center;
   vertical-align:middle;
+  padding:0;
 }
 
 th { background:#f2f2f2; }
 
-.time { width:40px; font-weight:bold; background:#fafafa; }
+.time {
+  width:40px;
+  font-weight:bold;
+  background:#fafafa;
+}
 
-/* 🔥 세로 가운데 정렬 해결 */
+/* 🔥 안정형 셀 스타일 */
 .cell {
   min-width:55px;
   height:36px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  line-height:36px; /* 세로 가운데 */
+  text-align:center;
+  vertical-align:middle;
 }
 
 .cell:focus {
@@ -65,140 +73,149 @@ const dateInput = document.getElementById("date");
 dateInput.value = new Date().toISOString().substring(0,10);
 dateInput.addEventListener("change", generate);
 
-function key(id){ return dateInput.value + "_" + id; }
+function key(id){
+  return dateInput.value + "_" + id;
+}
 
 function generate(){
 
 thead.innerHTML="";
 tbody.innerHTML="";
 
-/* 방번호 */
+/* ===== 방 번호 ===== */
 let row1="<tr><th class='time'>시간</th>";
 rooms.forEach(r=>{
-row1+="<th colspan='3'>"+r+"</th>";
+  row1+="<th colspan='3'>"+r+"</th>";
 });
 row1+="</tr>";
 thead.innerHTML+=row1;
 
-/* 메모 3줄 */
+/* ===== 메모 3줄 ===== */
 for(let line=1; line<=3; line++){
-let row="<tr><th></th>";
-rooms.forEach((r,ri)=>{
-for(let c=1;c<=3;c++){
-let id="memo_"+line+"_"+ri+"_"+c;
-row+="<th contenteditable='true' class='cell' id='"+key(id)+"'></th>";
-}
-});
-row+="</tr>";
-thead.innerHTML+=row;
+  let row="<tr><td></td>";
+  rooms.forEach((r,ri)=>{
+    for(let c=1;c<=3;c++){
+      let id="memo_"+line+"_"+ri+"_"+c;
+      row+="<td contenteditable='true' class='cell' id='"+key(id)+"'></td>";
+    }
+  });
+  row+="</tr>";
+  thead.innerHTML+=row;
 }
 
-/* M G R */
-let rowMGR="<tr><th></th>";
-rooms.forEach((r,ri)=>{
-rowMGR+="<th>M</th><th>G</th><th>R</th>";
+/* ===== M G R ===== */
+let rowMGR="<tr><td></td>";
+rooms.forEach(()=>{
+  rowMGR+="<th>M</th><th>G</th><th>R</th>";
 });
 rowMGR+="</tr>";
 thead.innerHTML+=rowMGR;
 
-/* 시간표 */
+/* ===== 시간표 ===== */
 for(let h=startHour; h<=endHour; h++){
-let row="<tr><td class='time'>"+h+"</td>";
-rooms.forEach((r,ri)=>{
+  let row="<tr><td class='time'>"+h+"</td>";
+  rooms.forEach((r,ri)=>{
 
-let id1="h"+h+"_r"+ri+"_m";
-row+="<td contenteditable='true' class='cell mcell' id='"+key(id1)+"'></td>";
+    let id1="h"+h+"_r"+ri+"_m";
+    row+="<td contenteditable='true' class='cell mcell' id='"+key(id1)+"'></td>";
 
-let id2="h"+h+"_r"+ri+"_g";
-row+="<td contenteditable='true' class='cell gcell' id='"+key(id2)+"'></td>";
+    let id2="h"+h+"_r"+ri+"_g";
+    row+="<td contenteditable='true' class='cell gcell' id='"+key(id2)+"'></td>";
 
-let id3="h"+h+"_r"+ri+"_r";
-row+="<td contenteditable='true' class='cell rcell' id='"+key(id3)+"'></td>";
+    let id3="h"+h+"_r"+ri+"_r";
+    row+="<td contenteditable='true' class='cell rcell' id='"+key(id3)+"'></td>";
 
-});
-row+="</tr>";
-tbody.innerHTML+=row;
+  });
+  row+="</tr>";
+  tbody.innerHTML+=row;
 }
 
-/* TW TB */
+/* ===== TW / TB ===== */
 ["TW","TB"].forEach(label=>{
-let row="<tr><td class='time'>"+label+"</td>";
-rooms.forEach((r,ri)=>{
-let textId=label+"_r"+ri;
-let checkId=textId+"_check";
-row+="<td colspan='2' contenteditable='true' class='cell' id='"+key(textId)+"'></td>";
-row+="<td><input type='checkbox' id='"+key(checkId)+"'></td>";
-});
-row+="</tr>";
-tbody.innerHTML+=row;
+  let row="<tr><td class='time'>"+label+"</td>";
+  rooms.forEach((r,ri)=>{
+    let textId=label+"_r"+ri;
+    let checkId=textId+"_check";
+
+    row+="<td colspan='2' contenteditable='true' class='cell' id='"+key(textId)+"'></td>";
+    row+="<td><input type='checkbox' id='"+key(checkId)+"'></td>";
+  });
+  row+="</tr>";
+  tbody.innerHTML+=row;
 });
 
 applyRestrictions();
 loadData();
 }
 
-/* 🔥 입력 제한 */
+/* ===== 입력 제한 ===== */
 function applyRestrictions(){
 
 // 줄바꿈 금지
 document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
-cell.addEventListener("keydown",e=>{
-if(e.key==="Enter") e.preventDefault();
-});
+  cell.addEventListener("keydown",e=>{
+    if(e.key==="Enter") e.preventDefault();
+  });
 });
 
-// M 한글2
+// M 한글 2글자
 document.querySelectorAll(".mcell").forEach(cell=>{
-cell.addEventListener("input",function(){
-this.innerText=this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
-});
+  cell.addEventListener("input",function(){
+    this.innerText=this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
+  });
 });
 
-// R 한글2
+// R 한글 2글자
 document.querySelectorAll(".rcell").forEach(cell=>{
-cell.addEventListener("input",function(){
-this.innerText=this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
-});
+  cell.addEventListener("input",function(){
+    this.innerText=this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
+  });
 });
 
-// G 숫자4
+// G 숫자 4자리
 document.querySelectorAll(".gcell").forEach(cell=>{
-cell.addEventListener("input",function(){
-this.innerText=this.innerText.replace(/[^0-9]/g,"").slice(0,4);
+  cell.addEventListener("input",function(){
+    this.innerText=this.innerText.replace(/[^0-9]/g,"").slice(0,4);
+  });
 });
-});
+
 }
 
-/* 저장 */
+/* ===== 저장 ===== */
 function saveData(){
+
 document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
-localStorage.setItem(cell.id,cell.innerText);
+  localStorage.setItem(cell.id,cell.innerText);
 });
+
 document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
-if(ch.checked){
-localStorage.setItem(ch.id,"1");
-}else{
-localStorage.removeItem(ch.id);
-}
+  if(ch.checked){
+    localStorage.setItem(ch.id,"1");
+  }else{
+    localStorage.removeItem(ch.id);
+  }
 });
+
 alert("저장되었습니다");
 }
 
-/* 불러오기 */
+/* ===== 불러오기 ===== */
 function loadData(){
+
 document.querySelectorAll("[contenteditable='true']").forEach(cell=>{
-let saved=localStorage.getItem(cell.id);
-if(saved!==null) cell.innerText=saved;
+  let saved=localStorage.getItem(cell.id);
+  if(saved!==null){
+    cell.innerText=saved;
+  }
 });
+
 document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
-let saved=localStorage.getItem(ch.id);
-if(saved){
-ch.checked=true;
-let textId=ch.id.replace("_check","");
-let cell=document.getElementById(textId);
-if(cell) cell.style.background="#ffe5e5";
-}
+  let saved=localStorage.getItem(ch.id);
+  if(saved){
+    ch.checked=true;
+  }
 });
+
 }
 
 generate();
