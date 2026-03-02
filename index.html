@@ -27,7 +27,6 @@ th, td {
   white-space: nowrap;
 }
 
-/* 입력 가능한 칸 */
 .editable {
   background: #fff9c4;
   min-height: 24px;
@@ -36,18 +35,16 @@ th, td {
   outline: none;
 }
 
-/* M/G/R 읽기 전용 */
 .mgr {
   background: #e0e0e0;
   font-weight: bold;
+  pointer-events: none; /* 입력 불가 */
 }
 
-/* 체크/칸2 입력 시 강조 */
 .highlight {
   background: #ffe5e5 !important;
 }
 
-/* 시간 칸 고정 */
 .time {
   width: 50px;
 }
@@ -55,7 +52,10 @@ th, td {
 </head>
 <body>
 
-<h2>예약 관리 최종버전</h2>
+<h2>예약 관리</h2>
+<label>날짜: <input type="date" id="datePicker"></label>
+<button id="saveBtn">저장</button>
+
 <div class="table-wrapper">
   <table id="table">
     <tbody id="tbody"></tbody>
@@ -68,83 +68,92 @@ const times = ["10","11","12","1","2","3","4","5","6","7","8","9","10","11"];
 const tbody = document.getElementById("tbody");
 
 // 유니크 key
-function key(id){ return "cell_"+id; }
+function key(date,id){ return date+"_"+id; }
 
-// 메모 3줄 생성
-for(let m=1;m<=3;m++){
-  let row = "<tr>";
+// 날짜 선택
+const datePicker = document.getElementById("datePicker");
+const today = new Date().toISOString().split('T')[0];
+datePicker.value = today;
+
+// 테이블 생성
+function generateTable(date){
+  tbody.innerHTML="";
+  // 방 번호 헤더
+  let headerRow="<tr><td>방 번호</td>";
+  rooms.forEach(r=>{ headerRow+="<td colspan='3'>"+r+"</td>"; });
+  headerRow+="</tr>";
+  tbody.innerHTML+=headerRow;
+
+  // 메모 3줄
+  for(let m=1;m<=3;m++){
+    let row="<tr><td>M"+m+"</td>";
+    rooms.forEach(r=>{
+      for(let c=1;c<=3;c++){
+        let textId = key(date,"M"+m+"_"+r+"_c"+c);
+        row+=`<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}"></div></td>`;
+      }
+    });
+    row+="</tr>";
+    tbody.innerHTML+=row;
+  }
+
+  // M/G/R 읽기 전용
+  let mgrRow="<tr><td>M/G/R</td>";
   rooms.forEach(r=>{
-    for(let c=1;c<=3;c++){
-      let textId = key("M"+m+"_"+r+"_c"+c);
-      row += `<td><div contenteditable="true" class="editable" id="${textId}" data-type="${c}"></div></td>`;
-    }
+    mgrRow+="<td class='mgr'>M</td><td class='mgr'>G</td><td class='mgr'>R</td>";
   });
-  row+="</tr>";
-  tbody.innerHTML+=row;
+  mgrRow+="</tr>";
+  tbody.innerHTML+=mgrRow;
+
+  // 시간 행
+  times.forEach(t=>{
+    let row="<tr><td class='time'>"+t+"</td>";
+    rooms.forEach(r=>{
+      for(let c=1;c<=3;c++){
+        let textId = key(date,"T"+t+"_"+r+"_c"+c);
+        row+=`<td><div contenteditable="true" class="editable" id="${textId}" data-col="${c}"></div></td>`;
+      }
+    });
+    row+="</tr>";
+    tbody.innerHTML+=row;
+  });
+
+  // TW/TB
+  ["TW","TB"].forEach(label=>{
+    let row="<tr><td>"+label+"</td>";
+    rooms.forEach(r=>{
+      let aId = key(date,label+"_"+r+"_A");
+      let bId = key(date,label+"_"+r+"_B");
+      row+=`<td colspan="2"><div contenteditable="true" class="editable" id="${aId}"></div></td>`;
+      row+=`<td><input type="checkbox" id="${bId}"></td>`;
+    });
+    row+="</tr>";
+    tbody.innerHTML+=row;
+  });
 }
 
-// M/G/R 읽기 전용
-let mgrRow="<tr>";
-rooms.forEach(r=>{
-  mgrRow+="<td class='mgr'>M</td><td class='mgr'>G</td><td class='mgr'>R</td>";
-});
-mgrRow+="</tr>";
-tbody.innerHTML+=mgrRow;
-
-// 시간 10~11시 생성
-times.forEach(t=>{
-  let row="<tr><td class='time'>"+t+"</td>";
-  rooms.forEach(r=>{
-    for(let c=1;c<=3;c++){
-      let textId = key("T"+t+"_"+r+"_c"+c);
-      row += `<td><div contenteditable="true" class="editable" id="${textId}" data-type="${c}"></div></td>`;
-    }
-  });
-  row+="</tr>";
-  tbody.innerHTML+=row;
-});
-
-// TW/TB 생성
-["TW","TB"].forEach(label=>{
-  let row="<tr><td>"+label+"</td>";
-  rooms.forEach(r=>{
-    let aId = key(label+"_"+r+"_A");
-    let bId = key(label+"_"+r+"_B");
-    row+=`<td colspan="2"><div contenteditable="true" class="editable" id="${aId}"></div></td>`;
-    row+=`<td><input type="checkbox" id="${bId}"></td>`;
-  });
-  row+="</tr>";
-  tbody.innerHTML+=row;
-});
-
 // 이벤트
-function attachEvents(){
+function attachEvents(date){
+  // Enter 금지 및 입력 제한
   document.querySelectorAll(".editable").forEach(cell=>{
-    // Enter 금지
-    cell.addEventListener("keydown", e=>{
-      if(e.key==="Enter") e.preventDefault();
-    });
+    cell.addEventListener("keydown", e=>{ if(e.key==="Enter") e.preventDefault(); });
 
-    // 칸2 입력 시 칸1 색 강조 + 입력 제한
     cell.addEventListener("input", e=>{
-      const type = cell.dataset.type; // 1,2,3
-      if(!type) return; // TW/TB A칸 제외
+      const col = cell.dataset.col;
+      if(!col) return;
       let val = cell.innerText.trim();
-      if(type=="1"){ // 한글2글자 제한
-        val = val.replace(/[^가-힣]/g,"").slice(0,2);
-        cell.innerText = val;
-      } else if(type=="2"){ // 숫자 4글자
-        val = val.replace(/[^0-9]/g,"").slice(0,4);
-        cell.innerText = val;
-        // 칸1 색 강조
+      if(col=="1") val = val.replace(/[^가-힣]/g,"").slice(0,2);
+      else if(col=="2") val = val.replace(/[^0-9]/g,"").slice(0,4);
+      else if(col=="3") val = val.replace(/[^가-힣]/g,"").slice(0,2);
+      cell.innerText = val;
+
+      // 칸2 입력 시 칸1 강조
+      if(col=="2"){
         const parts = cell.id.split("_");
-        const targetId = parts[0]+"_"+parts[1]+"_c1";
-        const c1 = document.getElementById(targetId);
+        const c1id = parts.slice(0,2).join("_")+"_c1";
+        const c1 = document.getElementById(c1id);
         if(val!="") c1.classList.add("highlight");
         else c1.classList.remove("highlight");
-      } else if(type=="3"){ // 한글2글자
-        val = val.replace(/[^가-힣]/g,"").slice(0,2);
-        cell.innerText = val;
       }
     });
   });
@@ -162,7 +171,51 @@ function attachEvents(){
   });
 }
 
-attachEvents();
+// 저장
+function saveData(date){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    localStorage.setItem(cell.id,cell.innerText);
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+    localStorage.setItem(ch.id,ch.checked?"1":"0");
+  });
+  alert("저장되었습니다");
+}
+
+// 불러오기
+function loadData(date){
+  document.querySelectorAll(".editable").forEach(cell=>{
+    const saved = localStorage.getItem(cell.id);
+    if(saved!==null) cell.innerText=saved;
+  });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
+    const saved = localStorage.getItem(ch.id);
+    ch.checked = saved==="1";
+    if(ch.checked){
+      const aId = ch.id.replace("_B","_A");
+      const aCell = document.getElementById(aId);
+      if(aCell) aCell.classList.add("highlight");
+    }
+  });
+}
+
+// 초기 생성
+generateTable(today);
+attachEvents(today);
+loadData(today);
+
+// 날짜 변경
+datePicker.addEventListener("change", ()=>{
+  const d = datePicker.value;
+  generateTable(d);
+  attachEvents(d);
+  loadData(d);
+});
+
+// 저장 버튼
+document.getElementById("saveBtn").addEventListener("click", ()=>{
+  saveData(datePicker.value);
+});
 </script>
 </body>
 </html>
