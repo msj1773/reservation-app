@@ -23,7 +23,7 @@ th { background:#f2f2f2; }
 
 .time { width:40px; font-weight:bold; background:#fafafa; }
 
-.cell { min-height:40px; } /* 기본 셀 높이 */
+.cell { min-height:40px; } 
 
 .inner {
   width:100%;
@@ -38,10 +38,9 @@ th { background:#f2f2f2; }
   background:#eef7ff;
 }
 
-/* M/R/G 칸 크기 조정 */
-.mcell { min-width:50px; } /* M 칸 */
-.rcell { min-width:70px; } /* R 칸 */
-.gcell { min-width:60px; } /* G 칸 */
+.mcell { min-width:50px; }
+.rcell { min-width:70px; }
+.gcell { min-width:60px; }
 </style>
 </head>
 
@@ -98,7 +97,7 @@ function generate(){
     thead.innerHTML+=row;
   }
 
-  // MGR 행 → 이제 입력 가능하도록 td + contenteditable
+  // MGR 행 (입력 가능)
   let rowMGR="<tr><td></td>";
   rooms.forEach((r,ri)=>{
     rowMGR+=makeCell("MGR_m_"+ri,"mcell");
@@ -137,35 +136,34 @@ function generate(){
   loadData();
 }
 
-/* 이벤트 처리 */
 function attachEvents(){
   // Enter 줄바꿈 금지
   document.querySelectorAll(".inner").forEach(cell=>{
-    cell.addEventListener("keydown",e=>{
-      if(e.key==="Enter") e.preventDefault();
-    });
+    cell.addEventListener("keydown", e => { if(e.key==="Enter") e.preventDefault(); });
   });
 
-  // 입력 제한
+  // M 칸 한글 2글자 제한, blur 시점
   document.querySelectorAll(".mcell").forEach(cell=>{
-    cell.addEventListener("input",function(){
+    cell.addEventListener("blur", function(){
       this.innerText = this.innerText.replace(/[^가-힣]/g,"").slice(0,2);
     });
   });
 
+  // R 칸 한글 3글자 제한, blur 시점
   document.querySelectorAll(".rcell").forEach(cell=>{
-    cell.addEventListener("input",function(){
+    cell.addEventListener("blur", function(){
       this.innerText = this.innerText.replace(/[^가-힣]/g,"").slice(0,3);
     });
   });
 
+  // G 칸 숫자 4자리 제한, 실시간
   document.querySelectorAll(".gcell").forEach(cell=>{
-    cell.addEventListener("input",function(){
+    cell.addEventListener("input", function(){
       this.innerText = this.innerText.replace(/[^0-9]/g,"").slice(0,4);
     });
   });
 
-  // 체크박스 색상
+  // 체크박스 배경
   document.addEventListener("change",function(e){
     if(e.target.type==="checkbox"){
       let textId=e.target.id.replace("_check","");
@@ -177,20 +175,14 @@ function attachEvents(){
   });
 }
 
-/* 저장 */
 function saveData(){
   let data = {};
-  document.querySelectorAll(".inner").forEach(cell=>{
-    data[cell.id] = cell.innerText;
-  });
-  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{
-    data[ch.id] = ch.checked ? "1" : "0";
-  });
+  document.querySelectorAll(".inner").forEach(cell=>{ data[cell.id] = cell.innerText; });
+  document.querySelectorAll("input[type='checkbox']").forEach(ch=>{ data[ch.id] = ch.checked ? "1" : "0"; });
   localStorage.setItem(dateInput.value, JSON.stringify(data));
   alert("저장되었습니다");
 }
 
-/* 불러오기 */
 function loadData(){
   let saved = JSON.parse(localStorage.getItem(dateInput.value) || "{}");
   for(let id in saved){
